@@ -2,25 +2,28 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net/http"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
 	connString := "postgres://pet_trigan:6Zkxaxsdfghj@localhost:5433/pet_project"
-
-	conn, err := pgx.Connect(context.Background(), connString)
+	pool, err := pgxpool.New(context.Background(), connString)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close(context.Background())
-
-	err = conn.Ping(context.Background())
+	defer pool.Close()
+	err = pool.Ping(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Соединение установлено")
+	h := &Handler{pool: pool}
+	http.HandleFunc("/hello", h.sayHello)
+	http.HandleFunc("/register", h.register)
+	err = http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
